@@ -1,5 +1,6 @@
 import torch
-import torchaudio as ta
+import soundfile as sf
+import time
 from chatterbox.tts import ChatterboxTTS
 
 # Detect device (Mac with M1/M2/M3/M4)
@@ -15,14 +16,19 @@ def patched_torch_load(*args, **kwargs):
 torch.load = patched_torch_load
 
 model = ChatterboxTTS.from_pretrained(device=device)
-text = "Today is the day. I want to move like a titan at dawn, sweat like a god forging lightning. No more excuses. From now on, my mornings will be temples of discipline. I am going to work out like the gods… every damn day."
+text = "Listen, these Transformers — absolute game changers, okay? They don’t just read words straight down the line like robots; Nah! They look at how every word connects, what actually matters; Boom! That’s how they get freakin’ smart; Electric stuff, man!"
 
-# If you want to synthesize with a different voice, specify the audio prompt
-AUDIO_PROMPT_PATH = "YOUR_FILE.wav"
+# Cache the target voice once so later generations skip re-embedding
+AUDIO_PROMPT_PATH = "PatReference00.mp3"
+model.prepare_conditionals(AUDIO_PROMPT_PATH, exaggeration=0.5)
+
+start = time.perf_counter()
 wav = model.generate(
-    text, 
-    audio_prompt_path=AUDIO_PROMPT_PATH,
-    exaggeration=2.0,
-    cfg_weight=0.5
+    text,
+    exaggeration=0.6,
+    cfg_weight=0.01
     )
-ta.save("test-2.wav", wav, model.sr)
+elapsed = time.perf_counter() - start
+print(f"Generation time after voice cached: {elapsed:.2f}s")
+
+sf.write("Patvoiceclonev3.wav", wav.squeeze(0).cpu().numpy(), model.sr)
